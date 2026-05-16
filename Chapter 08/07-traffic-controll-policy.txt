@@ -1,0 +1,42 @@
+# Create root HTB qdisc with default class: 
+tc qdisc add dev eth0 root handle 1: htb default 60
+
+# Root class matching link capacity: 
+tc class add dev eth0 parent 1: classid 1:1 htb rate 100mbit ceil 100mbit
+
+# Create traffic classes with appropriate allocations: 
+# VoIP - highest priority
+tc class add dev eth0 parent 1:1 classid 1:10 htb rate 2mbit ceil 5mbit  
+# Video conferencing
+tc class add dev eth0 parent 1:1 classid 1:20 htb rate 20mbit ceil 40mbit 
+# Business applications
+tc class add dev eth0 parent 1:1 classid 1:30 htb rate 50mbit ceil 80mbit 
+# Web browsing
+tc class add dev eth0 parent 1:1 classid 1:40 htb rate 10mbit ceil 30mbit 
+# Email and chat
+tc class add dev eth0 parent 1:1 classid 1:50 htb rate 5mbit ceil 15mbit
+# Default and miscellaneous
+tc class add dev eth0 parent 1:1 classid 1:60 htb rate 13mbit ceil 25mbit 
+
+# Add appropriate queuing disciplines to each leaf class: 
+tc qdisc add dev eth0 parent 1:10 handle 110: pfifo limit 50
+tc qdisc add dev eth0 parent 1:20 handle 120: pfifo limit 100
+tc qdisc add dev eth0 parent 1:30 handle 130: sfq perturb 10
+tc qdisc add dev eth0 parent 1:40 handle 140: sfq perturb 10
+tc qdisc add dev eth0 parent 1:50 handle 150: sfq perturb 10
+tc qdisc add dev eth0 parent 1:60 handle 160: sfq perturb 10
+
+
+# Mark packets using iptables (or nftables) for complex classification: 
+iptables -t mangle -A OUTPUT -p udp --dport 5060:5070 -j MARK --set-mark 10
+iptables -t mangle -A OUTPUT -p udp --dport 16384:32768 -j MARK --set-mark 20
+iptables -t mangle -A OUTPUT -p tcp --dport 443 -j MARK --set-mark 30
+iptables -t mangle -A OUTPUT -p tcp --dport 80 -j MARK --set-mark 40
+iptables -t mangle -A OUTPUT -p tcp --dport 25,587,993,995 -j MARK --set-mark 50
+
+# Direct marked traffic to appropriate classes: 
+tc filter add dev eth0 parent 1: protocol ip handle 10 fw flowid 1:10
+tc filter add dev eth0 parent 1: protocol ip handle 20 fw flowid 1:20
+tc filter add dev eth0 parent 1: protocol ip handle 30 fw flowid 1:30
+tc filter add dev eth0 parent 1: protocol ip handle 40 fw flowid 1:40
+tc filter add dev eth0 parent 1: protocol ip handle 50 fw flowid 1:50

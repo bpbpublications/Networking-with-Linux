@@ -1,0 +1,23 @@
+// File: rtt.bt
+// Run with sudo bpftrace rtt.bt
+
+tracepoint:tcp:tcp_probe {
+    // This tracepoint has RTT information
+    $srtt = args->srtt;
+    $rtt = $srtt >> 3;  // Convert from 8*us to us
+    
+    if ($rtt > 0 && $rtt < 1000000) {
+        @rtt_hist = hist($rtt);
+        @rtt_stats = stats($rtt);
+    }
+}
+ 
+interval:s:10 {
+    printf("\n=== TCP RTT Statistics (μs) ===\n");
+    printf("Histogram:\n");
+    print(@rtt_hist);
+    printf("\nStats: ");
+    print(@rtt_stats);
+    clear(@rtt_hist);
+    clear(@rtt_stats);
+}

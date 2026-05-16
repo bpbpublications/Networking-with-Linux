@@ -1,0 +1,25 @@
+#--------------------------------------#
+# tracepoint
+#--------------------------------------#
+
+# Use tracepoint to trace the socket state
+sudo bpftrace -e 'tracepoint:sock:inet_sock_set_state { 
+printf("TCP state change: %d\n", args->newstate); 
+}'
+
+# To get a complete list of tracepoints, use the following command: 
+sudo bpftrace -l tracepoint:* 
+
+
+#--------------------------------------#
+# kprobe and kretprobe
+#--------------------------------------#
+
+sudo bpftrace -e 'kprobe:tcp_v4_connect {
+ printf("TCP connect by %s (PID: %d)\n", comm, pid);
+}'
+
+
+sudo bpftrace -e 'kretprobe:tcp_v4_connect {
+ printf("TCP connect returned: %d\n", retval);
+}'

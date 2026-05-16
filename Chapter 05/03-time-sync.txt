@@ -1,0 +1,49 @@
+#--------------------------------------#
+# Configure systemd-timesyncd
+#--------------------------------------#
+
+
+# Install the systemd-timesyncd package
+sudo apt install systemd-timesyncd
+
+# The main configuration file for this service is /etc/systemd/timesyncd.conf.
+# Update the configuration as follows
+[Time]
+NTP=time.cloudflare.com
+FallbackNTP=0.pool.ntp.org 1.pool.ntp.org 2.pool.ntp.org
+
+# Use the timedatectl command to check the clock sync status of the host
+timedatectl 
+
+#--------------------------------------#
+# Configure NTP
+#--------------------------------------#
+
+# Install NTP package
+sudo apt install ntp
+
+# To configure ntp service, we add the ntp servers to the file /etc/ntpsec/ntp.conf
+pool 0.ubuntu.pool.ntp.org iburst
+pool 1.ubuntu.pool.ntp.org iburst
+pool 2.ubuntu.pool.ntp.org iburst
+pool 3.ubuntu.pool.ntp.org iburst
+
+
+server ntp.ubuntu.com
+restrict default kod nomodify nopeer noquery limited
+restrict 127.0.0.1
+restrict ::1
+
+# To check the status of ntp service
+ntpq -np
+ntpdig -d
+
+#--------------------------------------#
+# Configure chrony
+#--------------------------------------#
+
+# Install chrony package
+sudo apt install chrony
+
+# Check the chrony status
+chronyc tracking

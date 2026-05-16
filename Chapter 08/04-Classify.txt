@@ -1,0 +1,11 @@
+# Use u32 match to classify traffic
+tc filter add dev eth0 parent 1: protocol ip u32 match ip dport 22 0xffff flowid 1:10
+
+# Use Firewall mark to classify traffic
+# Refer the firewall mark in traffic shaping
+iptables -t mangle -A FORWARD -p tcp --dport 80 -j MARK --set-mark 10 
+tc filter add dev eth0 parent 1: protocol ip handle 10 fw flowid 1:20
+
+
+# Use the flower classifier with tc
+tc filter add dev eth0 parent 1: protocol ip flower ip_proto tcp dst_port 443 skb_priority 5 action skbedit priority 6 flowid 1:30

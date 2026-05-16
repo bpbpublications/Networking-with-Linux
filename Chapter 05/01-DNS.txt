@@ -1,0 +1,81 @@
+# Install the bind packages
+
+sudo apt install bind9 bind9-utils # For ubuntu
+sudo yum install bind bind-utils   # For Rocky Linux
+
+# Check the named.conf for the include directive like `include "/etc/bind/named.conf.local";`
+tail -5 /etc/bind/named.conf
+
+# Add the following to /etc/bind/named.conf.local  
+zone "example.com" {
+    type master;
+    file "/etc/bind/db.example.com";  # Path to zone file
+};
+ 
+zone "1.168.192.in-addr.arpa" {
+    type master;
+    file "/etc/bind/db.192.168.1";
+};
+
+# Add the following to your zone database file /etc/bind/db.example.com 
+$TTL 86400
+@   IN  SOA  ns1.example.com. admin.example.com. (
+                2025072501 ; Serial
+                3600       ; Refresh
+                1800       ; Retry
+                604800     ; Expire
+                86400      ; Min TTL
+)
+@       IN  NS    ns1.example.com.
+ns1     IN  A     192.168.1.10
+www     IN  A     192.168.1.20
+mail    IN  A     192.168.1.30
+
+# Add the following to the reverse zone database file /etc/bind/db.192.168.1
+$TTL 86400
+@   IN  SOA  ns1.example.com. admin.example.com. (
+                2023072401 ; Serial
+                3600       ; Refresh
+                1800       ; Retry
+                604800     ; Expire
+                86400      ; Min TTL
+)
+@       IN  NS    ns1.example.com.
+10      IN  PTR   ns1.example.com.
+20      IN  PTR   www.example.com.
+30      IN  PTR   mail.example.com.
+
+
+# Validate the named configuration 
+sudo named-checkconf && echo $?
+
+# Validate the zone configuration
+sudo named-checkzone example.com /etc/bind/db.example.com
+
+# Check the resolution of names in example.com domain
+dig @localhost mail.example.com
+dig @localhost +short mail.example.com
+
+# Check the reverse name resolution is working
+dig -x  192.168.1.10 +short
+dig -x  192.168.1.20 +short
+dig -x  192.168.1.30 +short
+
+# Add TXT records to the zone database file /etc/bind/db.example.com. Also increment the serial of the database file after you change the database
+
+build1  IN  A     192.168.1.41
+build2  IN  A     192.168.1.42
+build3  IN  A     192.168.1.43
+build4  IN  A     192.168.1.44
+ 
+; TXT Records
+@       IN      TXT     "This is a general TXT record for example.com"
+secret  IN      TXT     "This is hidden data"
+build   IN      TXT     "Build servers are [build1, build2, build3, build4]."
+
+
+# After adding the TXT resords validate the zone configuration again
+sudo named-checkzone example.com /etc/bind/db.example.com
+
+# Check the TXT records
+dig +short TXT @localhost build.example.com

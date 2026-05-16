@@ -1,0 +1,13 @@
+# Create the MACVLAN interface in a namespace
+sudo ip netns add macvlan-ns
+sudo ip link add macvlan0 link eth0 type macvlan mode bridge
+
+sudo ip link set macvlan0 netns macvlan-ns
+
+# Configure the interface and test connectivity
+sudo ip netns exec macvlan-ns ip link set macvlan0 up
+sudo ip netns exec macvlan-ns ip addr add 192.168.1.100/24 dev macvlan0
+
+# Test connectivity from within the namespace
+sudo ip netns exec macvlan-ns ping 192.168.1.1  # Ping your gateway
+sudo ip netns exec macvlan-ns ping 8.8.8.8      # Ping a public DNS

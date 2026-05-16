@@ -1,0 +1,79 @@
+# Install haproxy
+sudo apt install haproxy # For Ubuntu
+sudo dnf install haproxy # For Rocky Linux
+sudo yum install haproxy # For older versions of Redhat derivatives
+
+# HAProxy configuration file is /etc/haproxy/haproxy.cfg
+
+# HAProxy global configuration example
+global
+    log /dev/log local0   # Log to a local socket
+    maxconn 4000          # Maximum connections per process
+    user haproxy          # Drop privileges to these users
+    group haproxy
+    daemon                # Run as a background daemon
+
+defaults
+    mode http             # Default mode for all sections is HTTP (Layer 7)
+    option httplog        # Enable detailed HTTP logging
+    option dontlognull    # Don't log empty connections
+    timeout connect 5s    # Max time to connect to a backend server
+    timeout client 30s    # Max time client can be idle
+    timeout server 30s    # Max time backend server can be idle
+    option forwardfor     # Add X-Forwarded-For header with client IP
+    retries 3             # Number of retries on a server failure
+
+# HAProxy frontend configuration
+frontend main_http_frontend
+    bind :80              # Listen on port 80 on all interfaces
+    bind :443 ssl crt /etc/ssl/example.com.pem # For HTTPS
+
+    # Define an ACL (Access Control List) to match a path
+    acl is_static path_beg -i /static /images /javascript /css
+    acl is_api path_beg -i /api
+    acl host_blog hdr(host) -i blog.example.com
+
+    # Use ACLs to route traffic
+    use_backend static_servers if is_static
+    use_backend api_servers if is_api
+    use_backend blog_servers if host_blog
+
+    # Default backend if no ACLs match
+    default_backend web_servers
+
+# HAProxy backend configuration
+backend web_servers
+    balance roundrobin     # Load balancing algorithm
+    option httpchk GET /health HTTP/1.1\r\nHost:example.com # Adv health check
+    server web01 192.168.1.20:80 check weight 1
+    server web02 192.168.1.21:80 check weight 1
+    server web03 192.168.1.22:80 check backup # Marked as a backup server
+ 
+backend api_servers
+    balance leastconn      # Better for stateful or long-lived API connections
+    cookie SERVERID insert indirect nocache # Session persistence with cookies
+    server api01 192.168.1.30:8080 check cookie s1
+    server api02 192.168.1.31:8080 check cookie s2
+ 
+backend static_servers
+    balance source         # Persist based on client IP
+    server static01 192.168.1.40:80 check
+
+
+# HAProxy monitoring UI configuration
+frontend stats_frontend
+    bind *:8404
+    stats enable
+    stats uri /admin?stats
+    stats refresh 10s
+    stats auth admin:SecurePassword123 # Authentication for stats page
+    # Restrict access to a specific IP range for security
+    acl allowed_ips src 192.168.1.0/24
+    http-request deny if !allowed_ips
+
+
+# Validating the configuration
+sudo haproxy -f /etc/haproxy/haproxy.cfg -c
+
+# Reloading the service after configuration change
+sudo systemctl reload haproxy

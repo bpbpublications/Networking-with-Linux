@@ -1,0 +1,32 @@
+# Allows a socket in TIME_WAIT to be
+# reused for a new outgoing connection
+sysctl net.ipv4.tcp_tw_reuse
+
+# Time in seconds a socket must remain in the FIN-WAIT-2
+sysctl net.ipv4.tcp_fin_timeout
+
+# The maximum number of TIME_WAIT sockets
+# the system will hold simultaneously
+sysctl net.ipv4.tcp_max_tw_buckets
+
+# Two numbers defining the range of local ports
+# available for outgoing connections
+sysctl net.ipv4.ip_local_port_range
+
+
+# The time in seconds a connection must be idle
+# before the first keepalive probe is sent
+sysctl net.ipv4.tcp_keepalive_time
+
+# The time in seconds between successive keepalive probes
+sysctl net.ipv4.tcp_keepalive_intvl
+
+# The number of unacknowledged keepalive probes
+# before considering the connection dead and closing it
+sysctl net.ipv4.tcp_keepalive_probes
+
+
+# Example valuse for tuning TCP connection keeplive
+net.ipv4.tcp_keepalive_time = 300 
+net.ipv4.tcp_keepalive_intvl = 75 
+net.ipv4.tcp_keepalive_probes = 5

@@ -1,0 +1,14 @@
+# Add network namespaces
+sudo ip netns add red
+sudo ip netns add blue
+
+# List network namespaces
+ip netns list
+
+# Bringup the loopback interface in the network namespace
+ip netns exec red ip link set lo up
+ip netns exec red ip addr show
+
+# Verify isolation of the namespace
+ip netns exec red ping -c 2 127.0.0.1 # This will succeed.
+ip netns exec red ping -c 2 192.168.1.1 # This will fail

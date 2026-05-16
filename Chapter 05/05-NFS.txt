@@ -1,0 +1,42 @@
+#-------------------------#
+# On NFS Server
+#-------------------------#
+
+# Install NFS server
+sudo apt install nfs-kernel-server # For ubuntu
+sudo yum install nfs-utils         # For Rocky Linux
+
+# Configure the NFS Share
+sudo mkdir -p /srv/nfs_share
+touch /srv/nfs_share/file-on-nfs
+sudo chown nobody:nogroup /srv/nfs_share
+sudo chmod 777 /srv/nfs_share
+
+# Add the share to the nfs configuration file /etc/exports
+/srv/nfs_share 192.168.122.0/24(rw,sync,no_subtree_check)
+
+# Use the exportfs command to make the share available with nfs
+sudo exportfs -a
+
+
+#-------------------------#
+# On NFS Client
+#-------------------------#
+# Install the nfs client
+# On Rocky Linux, the NFS client is part of the nfs-utils package
+sudo apt install nfs-common
+
+# Create a directory to mount the nfs share
+sudo mkdir -p /mnt/nfs_client
+
+# Check the NFS share available on the NFS server
+showmount -e nfs-server-host-or-ip
+
+# Mount the NFS share
+sudo mount -t nfs   nfs-server-host-or-ip:/srv/nfs_share /mnt/nfs_client
+
+# Check the NFS mount as follows
+mount -t nfs4 
+
+# The files on the share can be accessed under the mount point
+ls /mnt/nfs_client 

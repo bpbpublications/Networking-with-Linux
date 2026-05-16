@@ -1,0 +1,35 @@
+# Run eBPF loaders with only necessary capabilities
+
+sudo setcap cap_bpf,cap_perfmon,cap_net_raw+eip /usr/local/bin/ebpf-monitor
+
+# Better: Use Linux Security Modules (LSMs) for finer control
+# apparmor profile for eBPF loader
+/usr/local/bin/ebpf-monitor {
+ capability bpf,
+ capability perfmon,
+ capability net_raw,
+ deny network inet raw,
+ /sys/fs/bpf/** rw,
+ /sys/kernel/debug/tracing/** r,
+}
+
+# Enable kernel security features to monitor and contain the security risk:
+echo 1 > /proc/sys/kernel/unprivileged_bpf_disabled
+echo 1 > /proc/sys/kernel/bpf_stats_enabled # Monitor BPF resource usage
+echo 1 > /proc/sys/kernel/kptr_restrict # Restrict kernel pointer exposure
+
+# Configure audit rules for eBPF
+auditctl -a always,exit -F arch=b64 -S bpf
+
+# Use kernel lockdown in production
+echo integrity > /sys/kernel/security/lockdown
+
+# Check all eBPF programs loaded into the kernel:
+sudo bpftool prog list
+
+# Monitor system calls related to BPF:
+sudo strace -e bpf -p $(pidof ebpf_loader)
+
+# Unload all BPF programs
+sudo bpftool prog list | grep -o '[0-9]*:' | cut -d: -f1 | \
+  xargs -I{} sudo bpftool prog unload id {}

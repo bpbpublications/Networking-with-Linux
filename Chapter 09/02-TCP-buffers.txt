@@ -1,0 +1,24 @@
+# BDP for network path with 1 Gbps of bandwidth and a 50 ms RTT
+# BDP (bytes) = [ Bandwidth (bits/second) × Round-Trip Time (seconds) ] / 8
+BDP = (1,000,000,000 bits/s × 0.050 seconds) / 8
+BDP = 6,250,000 bytes (or ~6.25 MB)
+
+
+# View the global socket buffers
+sysctl net.core.rmem_max  # Receive buffer
+sysctl net.core.wmem_max  # send buffer
+
+# TCP socket buffers
+sysctl net.ipv4.tcp_rmem
+sysctl net.ipv4.tcp_wmem
+
+# Total system wide TCP buffers
+sysctl net.ipv4.tcp_mem
+
+# Setting the global maximums
+sysctl -w net.core.rmem_max=13421728  # ~13 MB
+sysctl -w net.core.wmem_max=13421728
+
+# Configure the TCP auto-tuning limits
+sysctl -w net.ipv4.tcp_rmem=”4096 87380 13421728”
+sysctl -w net.ipv4.tcp_wmem=”4096 87380 13421728”

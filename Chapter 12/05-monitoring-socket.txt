@@ -1,0 +1,24 @@
+# Monitor socket level activity
+
+sudo bpftrace -e '
+tracepoint:sock:inet_sock_set_state {
+ $state_str = "UNKNOWN";
+ 
+// Use actual numeric values
+ if (args->newstate == 1) { $state_str = "ESTABLISHED"; }
+ else if (args->newstate == 2) { $state_str = "SYN_SENT"; }
+ else if (args->newstate == 3) { $state_str = "SYN_RECV"; }
+ else if (args->newstate == 4) { $state_str = "FIN_WAIT1"; }
+ else if (args->newstate == 5) { $state_str = "FIN_WAIT2"; }
+ else if (args->newstate == 6) { $state_str = "TIME_WAIT"; }
+ else if (args->newstate == 7) { $state_str = "CLOSE"; }
+ else if (args->newstate == 8) { $state_str = "CLOSE_WAIT"; }
+ else if (args->newstate == 9) { $state_str = "LAST_ACK"; }
+ else if (args->newstate == 10) { $state_str = "LISTEN"; }
+ else if (args->newstate == 11) { $state_str = "CLOSING"; }
+ 
+printf("TCP %s:%d → %s:%d state: %s (PID: %d)\n",
+ ntop(args->saddr), args->sport,
+ ntop(args->daddr), args->dport,
+ $state_str, pid);
+}'

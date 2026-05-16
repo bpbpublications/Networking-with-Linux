@@ -1,0 +1,19 @@
+# Load the kernel module if necessary (usually built-in)
+sudo modprobe ipvlan
+
+# Create a namespace
+sudo ip netns add ipvlan-ns
+
+# Create an IPVLAN interface in L2 mode, attached to parent eth0
+sudo ip link add name ipvlan0 type ipvlan link eth0 mode l2
+
+# Move the interface into the namespace
+sudo ip link set ipvlan0 netns ipvlan-ns
+
+# Configure the interface
+sudo ip netns exec ipvlan-ns ip link set ipvlan0 up
+sudo ip netns exec ipvlan-ns ip addr add 192.168.1.150/24 dev ipvlan0
+sudo ip netns exec ipvlan-ns ip route add default via 192.168.1.1
+
+# Test connectivity
+sudo ip netns exec ipvlan-ns ping 8.8.8.8

@@ -1,0 +1,7 @@
+# Creating a VTEP on openVswitch
+ovs-vsctl add-br br0
+ovs-vsctl add-port br0 eth0
+ovs-vsctl add-port br0 vxlan0 -- set interface vxlan0 type=vxlan \
+options:remote_ip=192.168.100.20 options:key=100
+
+ovs-vsctl add-port br0 veth1

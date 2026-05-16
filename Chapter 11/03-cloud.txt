@@ -1,0 +1,42 @@
+#------------------------#
+# AWS
+#------------------------#
+# Lists all VPCs in the region
+aws ec2 describe-vpcs
+
+# Get details for a specific VPC
+aws ec2 describe-vpcs --vpc-ids vpc-12345678
+
+# List all subnets, including their VPC association
+aws ec2 describe-subnets
+
+# Check all route tables
+aws ec2 describe-route-tables
+
+#------------------------#
+# Azure
+#------------------------#
+# List VNET and subnets in Azure
+az network vnet list
+az network vnet subnet list	
+
+# List the firewall rules
+az network nsg list
+az network nsg rule list --nsg-name myNSG
+
+#------------------------#
+# GCP
+#------------------------#
+# List the PVC and subnets
+gcloud compute networks list
+gcloud compute networks subnets list
+gcloud compute networks subnets list --regions us-central1
+
+# Inspect routers and routing rules
+gcloud compute routers list
+gcloud compute routes list
+
+# Check the firewall configurations
+gcloud compute firewall-rules list
+gcloud compute firewall-rules describe allow-ssh
+

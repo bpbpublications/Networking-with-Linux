@@ -1,0 +1,33 @@
+# To use NGINX as a reverse proxy use the proxy_pass directive for a location
+# With the follow configuration A web app running at localhost and port 3001
+# can be accessed by making a request to https://example.com/app1/
+
+server { 
+listen 443 ssl;
+server_name example.com www.example.com;
+ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+	ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
+
+	root /var/www/example.com/html;
+	index index.html index.htm;
+
+	location / { 
+    		try_files $uri $uri/ =404; 
+	} 
+location /app1 {
+    		proxy_pass http://localhost:3001;  # Forward to local app port 3001
+    		rewrite ^/app1/(.*)$ /$1 break;
+    		proxy_set_header Host $host;
+    		proxy_set_header X-Real-IP $remote_addr;
+    		
+	}
+}
+
+# Start a web server on port 3001
+mkdir app1/
+cd app1/
+echo app1 > index.html
+python3 -m http.server -b localhost 3001
+
+# Use curl to access the application as follows
+curl https://example.com/app1/index.html

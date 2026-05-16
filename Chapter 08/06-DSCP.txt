@@ -1,0 +1,15 @@
+# DiffServ Code Points for end-to-end quality of service
+iptables -t mangle -A FORWARD -p tcp --sport 22 -j DSCP --set-dscp-class ef
+tc filter add dev eth0 parent 1: protocol ip match ip dsfield 0xb8 0xfc flowid 1:10
+
+# Mark packets using iptables in the mangle table: 
+iptables -t mangle -A FORWARD -p udp --dport 5060:5070 -j MARK --set-mark 10
+iptables -t mangle -A FORWARD -m layer7 --l7proto bittorrent -j MARK --set-mark 30
+
+# Use iptables connection tracking to classify traffic
+iptables -t mangle -A FORWARD -m connbytes --connbytes 1048576: --connbytes-dir both --connbytes-mode bytes -j MARK --set-mark 40
+
+# Classify marked packets using tc: 
+tc filter add dev eth0 parent 1: protocol ip handle 10 fw flowid 1:10
+tc filter add dev eth0 parent 1: protocol ip handle 30 fw flowid 1:30
+

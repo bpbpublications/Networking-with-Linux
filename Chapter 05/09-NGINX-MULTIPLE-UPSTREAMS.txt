@@ -1,0 +1,41 @@
+# To forward request to multiple backend servers use the upstream directive
+
+upstream backend {
+    server 127.0.0.1:3001;
+    server 127.0.0.1:3002;
+}
+server { listen 443 ssl; server_name example.com www.example.com;
+ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+ssl_certificate_key /etc/ssl/private/nginx-selfsigned.key;
+
+root /var/www/example.com/html;
+index index.html index.htm;
+
+location / {
+    try_files $uri $uri/ =404;
+  }
+
+location /app1 {
+    proxy_pass http://backend;  # Forward to local app on port 3000
+    rewrite ^/app1/(.*)$ /$1 break;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    
+  } 
+}
+
+# To use health checks with the backend servers use the max_fails and fail_timeout options
+# fail_timeout=30s stops sending traffic for 30 seconds when a server is marked as unhealthy
+# max_fails=3 after 3 consecutive failed requests, the server is marked unhealthy
+upstream backend {
+        server 192.168.1.10:3000 max_fails=3 fail_timeout=30s;
+        server 192.168.1.11:3000 max_fails=3 fail_timeout=30s;
+    }
+
+# Enable caching use the proxy_cache_path directive
+# /var/cache/nginx is the path for storage of cached files
+# inactive=60m deletes cache after 60 minutes of inactivity
+# levels defines the directory hierarchy structure for storing cached files
+# keys_zone=my_cache:10m configures a shared memory zone of 10MB for cache keys
+http { 
+proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=my_cache:10m inactive=60m;

@@ -1,0 +1,11 @@
+# List all pods on the node with their IDs
+sudo crictl pods 
+
+# List containers in a pod to find the pause container's ID
+sudo crictl ps --pod <pod-id> 
+
+# Inspect the pause container to get its PID
+sudo crictl inspect <pause-container-id> | grep -i pid 
+
+# Using debug container with k8s pod
+kubectl debug -it <pod-name> --image=nicolaka/netshoot --target=<container-name>

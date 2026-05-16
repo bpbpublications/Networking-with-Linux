@@ -1,0 +1,67 @@
+#--------------------------------------#
+# Example configuration for Keepalived
+# managed IPVS Load Balancers
+#--------------------------------------#
+ 
+
+vrrp_instance VI_1 {
+    state MASTER        # 'BACKUP' on LB2
+    interface eth0
+    virtual_router_id 51
+    priority 100        # '90' on LB2
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass securepassword
+    }
+    virtual_ipaddress {
+        203.0.113.100/32 dev eth0  # The Virtual IP
+    }
+}
+
+# IPVS Virtual Service and Real Server Pool
+virtual_server 203.0.113.100 80 {
+    delay_loop 15
+    lb_algo wlc         # Weighted Least Connections
+    lb_kind DR          # DIRECT ROUTING mode
+    protocol TCP
+
+    # Health check for each real server
+    real_server 192.168.1.20 80 {
+        weight 1
+        TCP_CHECK {
+            connect_port 80
+            connect_timeout 3
+            retry 2
+            delay_before_retry 1
+        }
+    }
+    real_server 192.168.1.21 80 {
+        weight 1
+        TCP_CHECK {
+            connect_port 80
+            connect_timeout 3
+        }
+    }
+    real_server 192.168.1.22 80 {
+        weight 2        # This server is more powerful, give it more weight
+        TCP_CHECK {
+            connect_port 80
+            connect_timeout 3
+        }
+    }
+}
+
+#--------------------------------------#
+# Script to configure the real servers
+#--------------------------------------#
+
+#!/bin/bash
+# /etc/keepalived/real_server_config.sh
+# Configure the VIP on the loopback interface
+VIP=203.0.113.100
+/sbin/ifconfig lo:1 $VIP netmask 255.255.255.255 up
+ 
+# Prevent the real server from responding to ARP requests for the VIP
+echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore
+echo 2 > /proc/sys/net/ipv4/conf/all/arp_announce

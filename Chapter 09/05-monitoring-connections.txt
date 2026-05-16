@@ -1,0 +1,11 @@
+# Monitor packet drops
+ip -s link show enp1s0 
+
+# View socket-level memory usage and queue states
+ss -ltnp  # Listening sockets
+ss -tnp
+
+# The /proc/net/netstat file provides detailed counters
+# including those related to SYN Cookies
+
+awk '/^TcpExt/{print $1"\t"$2"\t"$3"\t"$4}' /proc/net/netstat |column -t

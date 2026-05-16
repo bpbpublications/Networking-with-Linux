@@ -1,0 +1,48 @@
+## Install keepalived
+sudo apt install keepalived # On Ubuntu
+sudo dnf install keepalived # On Rocky Linux
+
+## Start the keepalived service
+sudo systemctl enable --now keepalived
+
+## Example keepalived configuration /etc/keepalived/keepalived.conf
+# Global definitions for the daemon
+global_defs {
+    notification_email {
+        admin@yourdomain.com  # Email for alerts (requires local mail setup)
+    }
+    notification_email_from keepalived@localhost
+    smtp_server 127.0.0.1
+    smtp_connect_timeout 30
+    router_id LVS_MASTER_01  # A unique identifier for this node
+}
+
+# Define the VRRP instance
+vrrp_instance VI_1 {
+    state MASTER            # On the master node. On backup node, use 'BACKUP'
+    interface eth0          # The network interface to use 
+    virtual_router_id 51    # ID for group (0-255). MUST be same on both nodes.
+    priority 100            # Election priority (1-254). Master must be higher.
+
+    advert_int 1            # Time in seconds between VRRP advertisements
+
+    # Authentication for VRRP packets (simple password)
+    authentication {
+        auth_type PASS       # Use password authentication
+        auth_pass mySecret   # max 8 chars. MUST be same on both nodes.
+    }
+
+    # The Virtual IP address that will be shared and moved between nodes
+    virtual_ipaddress {
+        192.168.1.100/32 dev eth0  # The VIP with a /32 mask on the interface
+    }
+}
+
+## To integrate health checks with keepalived use the vrrp_script
+vrrp_script chk_haproxy {
+    script "pidof haproxy"  # Check haproxy process
+    interval 2              # Check every 2 seconds
+    weight 50               # Value to add to priority on success.
+    fall 2                  # Require 2 failures for KO
+    rise 2                  # Require 2 successes for OK
+}

@@ -1,0 +1,11 @@
+# HTB with SFQ leaves for internal fairness
+
+tc qdisc add dev eth0 root handle 1: htb default 30
+tc class add dev eth0 parent 1: classid 1:10 htb rate 50mbit ceil 80mbit
+tc class add dev eth0 parent 1: classid 1:20 htb rate 30mbit ceil 50mbit
+
+
+# Add SFQ to each class for fair distribution within the class
+
+tc qdisc add dev eth0 parent 1:10 handle 110: sfq perturb 10
+tc qdisc add dev eth0 parent 1:20 handle 120: sfq perturb 10

@@ -1,0 +1,88 @@
+#-----------------------------------------#
+# Setup WireGuard based point-to-site VPN: 
+#-----------------------------------------#
+# Creating virtual network topology: We will create three network namespaces to simulate:
+#    wg-server: The VPN server with a public IP
+#    wg-client: The client that will connect to the server
+#    router: A simulated internet router
+
+
+# Create network namespaces: 
+sudo ip netns add wg-server
+sudo ip netns add wg-client
+sudo ip netns add router
+
+# Create virtual Ethernet pairs: 
+sudo ip link add veth-server type veth peer name veth-server-rt
+sudo ip link add veth-client type veth peer name veth-client-rt
+
+# Move interfaces to appropriate namespaces: 
+sudo ip link set veth-server netns wg-server
+sudo ip link set veth-server-rt netns router
+sudo ip link set veth-client netns wg-client
+sudo ip link set veth-client-rt netns router
+
+# Configure IP addresses: 
+sudo ip netns exec wg-server ip addr add 192.168.100.10/24 dev veth-server
+sudo ip netns exec router ip addr add 192.168.100.1/24 dev veth-server-rt
+sudo ip netns exec wg-client ip addr add 192.168.200.10/24 dev veth-client
+sudo ip netns exec router ip addr add 192.168.200.1/24 dev veth-client-rt
+
+# Bring up all interfaces: 
+sudo ip netns exec wg-server ip link set veth-server up
+sudo ip netns exec wg-server ip link set lo up
+sudo ip netns exec router ip link set veth-server-rt up
+sudo ip netns exec wg-client ip link set veth-client up
+sudo ip netns exec wg-client ip link set lo up
+sudo ip netns exec router ip link set veth-client-rt up
+
+# Enable routing: 
+sudo ip netns exec router sysctl -w net.ipv4.ip_forward=1
+sudo ip netns exec wg-client ip route add 192.168.100.0/24 via 192.168.200.1
+sudo ip netns exec wg-server ip route add 192.168.200.0/24 via 192.168.100.1
+
+# Generate WireGuard Keys: 
+#    Generate server keys: 
+sudo ip netns exec wg-server wg genkey | sudo tee /tmp/server_private.key | wg pubkey | sudo tee /tmp/server_public.key
+
+#    Generate client keys: 
+sudo ip netns exec wg-client wg genkey | sudo tee /tmp/client_private.key | wg pubkey | sudo tee /tmp/client_public.key
+
+# Configure WireGuard Interfaces: 
+# Server Configuration file /tmp/wg0-server.conf:
+
+[Interface]
+PrivateKey = <contents-of-server_private.key>
+Address = 10.0.0.1/24
+ListenPort = 51820
+[Peer]
+PublicKey = <contents-of-client_public.key>
+Endpoint = 192.168.200.10:51820
+AllowedIPs = 10.0.0.2/32
+
+# Client Configuration file /tmp/wg0-client.conf:
+
+[Interface]
+PrivateKey = <contents-of-client_private.key>
+Address = 10.0.0.2/32
+[Peer]
+PublicKey = <contents-of-server_public.key>
+Endpoint = 192.168.100.10:51820
+AllowedIPs = 10.0.0.0/24
+
+# Start the WireGuard tunnels: 
+#    Start server: 
+sudo ip netns exec wg-server wg-quick up /tmp/wg0-server.conf
+
+#    Start client: 
+sudo ip netns exec wg-client wg-quick up /tmp/wg0-client.conf
+
+# Test the connection: 
+#    Check WireGuard status with wg show: 
+sudo ip netns exec wg-server wg show
+sudo ip netns exec wg-client wg show
+
+#    Test connectivity using ping: 
+sudo ip netns exec wg-client ping 10.0.0.1
+sudo ip netns exec wg-server ping 10.0.0.2
+

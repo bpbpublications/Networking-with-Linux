@@ -1,0 +1,89 @@
+# Run the tetragon container with docker:
+docker run --name tetragon --rm -d                   \
+    --pid=host --cgroupns=host --privileged          \
+    -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf \
+    quay.io/cilium/tetragon:v1.6.0
+
+# Retrieve with the Tetragon client CLI 
+docker exec -ti tetragon tetra getevents -o compact
+
+
+# Configure the tetragon service with a network policy
+docker run --name tetragon --rm -d                   \
+    --pid=host --cgroupns=host --privileged          \
+    -v /sys/kernel/btf/vmlinux:/var/lib/tetragon/btf \
+    -v $PWD/network_egress_cluster_subst.yaml:/etc/tetragon/tetragon.conf.d/network_egress_cluster.yaml \
+    quay.io/cilium/tetragon:v1.6.0
+
+#--------------------------------#
+# tetragon network policies
+#--------------------------------#
+
+#--------------------------------#
+# Detects network connections from IP addresses
+# not in the subnet "192.168.1.0/24", "10.0.0.0/8"
+#--------------------------------#
+
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+ name: "detect-unauthorized-connections"
+spec:
+ kprobes:
+ - call: "__x64_sys_connect"
+ syscall: true
+ selectors:
+ - matchArgs:
+ - index: 1 # sockaddr
+ operator: "NotIn"
+ values: ["192.168.1.0/24", "10.0.0.0/8"]
+ matchActions:
+ - action: "Alert"
+ argAlert: "Unauthorized external connection attempt"
+
+#--------------------------------#
+# Detect transfer of data of size greater than 1 MB
+#--------------------------------#
+
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+ name: "data-exfiltration-monitoring"
+spec:
+ kprobes:
+ - call: "__x64_sys_send"
+ syscall: true
+ args:
+ - index: 0
+ type: "int"
+ - index: 1
+ type: "const void*"
+ - index: 2
+ type: "size_t"
+ selectors:
+ - matchArgs:
+ - index: 2 # size
+ operator: "GreaterThan"
+ values: ["1048576"] # 1MB
+ matchActions:
+ - action: "Post"
+ argAlert: "Large outbound data transfer detected"
+
+#--------------------------------#
+# Observability for latency in network connections
+#--------------------------------#
+
+ apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+ name: "network-latency-monitoring"
+spec:
+ kprobes:
+ - call: "__x64_sys_connect"
+ syscall: true
+ return: true
+ selectors:
+ - matchActions:
+ - action: "Metric"
+ argMetric: "connect_latency"
+ argOp: "Observe"

@@ -1,0 +1,45 @@
+# Generate the ssh key for key-based authentication
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# Use ssh-copy-id to securely transfer your public key to the remote server
+ssh-copy-id -i <path to public key> <ssh server> 
+
+# Use ssh-agent to avoid being prompted for password to load the ssh key
+# Following command will print the SSH_AUTH_SOCK and SSH_AGENT_PID
+# which should be exported in the shell
+ssh-agent
+
+# Use the ssh-add command to add your key to the agent this will prompt for password once
+ssh-add
+
+# Now you can continue to ssh to servers using key-based authentication
+# without being prompted for password each time
+
+# To disable password authentication for ssh service set the following options
+# in /etc/ssh/sshd_config file
+PasswordAuthentication no
+PubkeyAuthentication yes
+
+# Restart the sshd service after the configuration file update
+sudo systemctl restart sshd
+
+#--------------------------------------------#
+# Local port forwarding with SSH
+#--------------------------------------------#
+# Redirects traffic from a local port to a remote server
+# allowing secure access to services running on a private network.
+
+ssh -L 3306:localhost:3306 user@remote-server.com
+
+#--------------------------------------------#
+# Remote port forwarding with SSH
+#--------------------------------------------#
+# Makes a local service available on a remote machine
+
+ssh -R 8080:localhost:8000 user@public-server.com
+
+#--------------------------------------------#
+# Dynamic port forwarding with SSH
+#--------------------------------------------#
+# Creates a flexible SOCKS proxy routing all traffic through the SSH server
+ssh -D 1080 user@proxy-server.com

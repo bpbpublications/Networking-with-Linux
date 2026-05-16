@@ -1,0 +1,25 @@
+# Use iptables rules to mark the DSCP for packets
+iptables -t mangle -A POSTROUTING -p udp --dport 5060:5070 -j DSCP --set-dscp 46
+iptables -t mangle -A POSTROUTING -p tcp --dport 22 -j DSCP --set-dscp 26
+
+iptables -t mangle -A POSTROUTING -p tcp --dport 21 -j DSCP --set-dscp 8
+
+
+# Configure pfifo queuing discipline to interface with a limit of 100 packets
+tc qdisc add dev eth0 root pfifo limit 100
+tc qdisc replace dev eth0 root pfifo limit 100
+
+# To view the statistics of the queuing discipline, use the following command: 
+tc -s qdisc show dev eth0
+
+
+# Use token bucket filters
+tc qdisc add dev eth0 root tbf rate 1mbit burst 32kbit latency 400ms
+
+# Configure HTB qdisc
+tc qdisc add dev eth0 root handle 1: htb default 20
+ 
+tc class add dev eth0 parent 1: classid 1:1 htb rate 100mbit ceil 100mbit
+tc class add dev eth0 parent 1:1 classid 1:10 htb rate 30mbit ceil 60mbit
+tc class add dev eth0 parent 1:1 classid 1:20 htb rate 50mbit ceil 80mbit  
+tc class add dev eth0 parent 1:1 classid 1:30 htb rate 20mbit ceil 40mbit

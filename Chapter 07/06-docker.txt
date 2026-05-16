@@ -1,0 +1,16 @@
+# Inspect docker container to find the PID of the process and the ContainerID
+docker inspect --format '{{ .State.Pid }}' <container-name>
+docker inspect -f '{{.State.Pid}} {{.Name}}' $(docker ps -q) | grep -v ^0
+
+# Use nsenter with the PID of the process
+# running in the docker container to enter
+# the network namespace of the container
+
+sudo nsenter -t 12345 -n ip addr show
+sudo nsenter -t 12345 -n iptables –L
+
+# Alternatively use ip netns to get access
+# to the network namespace of the container
+sudo ln -s /proc/12345/ns/net /var/run/netns/container12345
+ip netns list  # Will now show 'container12345'
+ip netns exec container12345 ip route show

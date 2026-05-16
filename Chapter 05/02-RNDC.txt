@@ -1,0 +1,40 @@
+# Create an rndc key with the following command.
+# The file /etc/bind/rndc.key should be generated
+sudo rndc-confgen -a -k rndc-key
+
+# Check the rndc key created above
+ls -l /etc/bind/rndc.key
+
+# Configure the bind server to reference the RNDC key file by adding the following 
+# to /etc/bind/named.conf.options
+include "/etc/bind/rndc.key";
+ 
+controls {
+    inet 127.0.0.1 port 953
+    allow { 127.0.0.1; } keys { "rndc-key"; };
+};
+
+# Update the zone in the /etc/bind/named.conf.local
+# file to allow update with rndc as follows 
+zone "example.com" {
+    type master;
+    file "/etc/bind/db.example.com";  # Path to zone file
+    allow-update { key "rndc-key"; };
+};
+
+# Restart the named service
+sudo systemctl restart named
+
+# Check the status of rndc 
+sudo rndc status
+
+
+# Use the rndc command to update the zone database as follows
+sudo nsupdate -k /etc/bind/rndc.key
+> server 127.0.0.1
+> update add newtxt.example.com 86400 TXT "Dynamic TXT record"
+> send
+> quit
+
+# Check the update that was pushed using the rndc command
+dig +short TXT @localhost newtxt.example.com

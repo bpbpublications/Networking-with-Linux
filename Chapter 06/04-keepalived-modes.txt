@@ -1,0 +1,51 @@
+#--------------------------------------#
+# Keepalived configuration for
+# source hash based loadbalancing
+#--------------------------------------#
+
+virtual_server 203.0.113.50 443 {
+    delay_loop 10
+    lb_algo sh          # Source Hash for TLS session persistence
+    lb_kind DR
+    protocol TCP
+ 
+    real_server 192.168.1.30 443 {
+        weight 1
+        TCP_CHECK {
+            connect_port 443
+            connect_timeout 3
+        }
+    }
+    real_server 192.168.1.31 443 {
+        weight 1
+        TCP_CHECK {
+            connect_port 443
+            connect_timeout 3
+        }
+    }
+}
+
+
+#--------------------------------------#
+# Keepalived configuration with WLC and
+# NAT mode loadbalancer with health check
+#--------------------------------------#
+virtual_server 203.0.113.75 5060 {
+    delay_loop 10
+    lb_algo wlc
+    lb_kind NAT          # Network Address Translation for UDP statefulness
+    protocol UDP         # Critical: UDP protocol
+ 
+    real_server 192.168.10.40 5060 {
+        weight 1
+        UDP_CHECK {      # UDP specific health check
+            retry 2
+        }
+    }
+    real_server 192.168.10.41 5060 {
+        weight 1
+        UDP_CHECK {
+            retry 2
+        }
+    }
+}

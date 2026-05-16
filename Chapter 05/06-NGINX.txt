@@ -1,0 +1,44 @@
+# Install and enable NGINX service
+sudo apt install nginx
+sudo systemctl start nginx
+sudo systemctl enable nginx
+
+# NGINX configuration files are stored in /etc/nginx/
+# The main configuration file is /etc/nginx/nginx.conf
+# Other configuration files are included using
+# the "include" directive in the main config file
+
+include /etc/nginx/sites-enabled/*;
+
+# Create /etc/nginx/sites-available/example.com with the following configuration
+# for example.com domain
+server {
+    listen 80;
+    server_name example.com www.example.com;
+    root /var/www/example.com/html;
+    index index.html index.htm;
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+
+# Create the root directory for the domain and the index.html
+sudo mkdir -p /var/www/example.com/html
+sudo chown -R www-data:www-data /var/www/example.com/html
+echo "<h1>Welcome to Example.com</h1>"|sudo tee /var/www/example.com/html/index.html
+
+# Enable the domain by making it available under /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/example.com /etc/nginx/sites-enabled/
+
+# Validate the nginx configuration
+sudo nginx -t
+
+# Reload nginx to load the new configuration
+sudo systemctl reload nginx
+
+# Update the /etc/hosts file by adding the mapping for example.com
+# In real conditions this address is updated as a CNAME in the DNS server
+127.0.0.1 example.com www.example.com
+
+# Use curl to access the website
+curl http://example.com

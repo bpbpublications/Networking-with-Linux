@@ -1,0 +1,71 @@
+# BIRD Internet Routing Daemon configuration
+
+#--------------------------------------#
+# BGP configuration for DC1 as the primary
+# advertising the VIP 203.0.113.100/32
+#--------------------------------------#
+router id 192.168.1.10;
+protocol kernel {
+    persist; # Don't remove routes on BIRD shutdown
+    scan time 20;
+    import all; # Learn routes from the kernel
+    export filter { # Control which routes we advertise to the kernel
+        if net = 203.0.113.100/32 then accept; # Advertise our VIP
+        reject; # Block everything else
+    };
+}
+protocol device {
+    scan time 10;
+}
+protocol bgp uplink {
+    local as 64512;
+    neighbor 192.168.1.1 as 65530;
+    # Import rules: what we learn from the router
+    import all;    
+    # Export rules: what we advertise to the router
+    export filter {
+        # Only advertise our specific VIP
+        if net = 203.0.113.100/32 then {
+            accept;
+        }
+        # Reject all other routes from being advertised to the peer
+        reject;
+    };    
+    source address 192.168.1.10; # IP to use for the BGP session
+}
+
+#--------------------------------------#
+# BGP configuration for DC2 as the primary
+# advertising the VIP 203.0.113.100/32
+#--------------------------------------#
+
+router id 192.168.1.11; 
+protocol kernel {
+    persist;
+    scan time 20;
+    import all;
+    export filter {
+        if net = 203.0.113.100/32 then accept;
+        reject;
+    };
+} 
+protocol device {
+    scan time 10;
+} 
+protocol bgp uplink {
+    local as 64512;
+    neighbor 192.168.1.1 as 65530;
+    import all;  
+    export filter {
+        if net = 203.0.113.100/32 then {
+            # --- THE CRITICAL LINE --- #
+            # Prepend our AS number two extra times to the AS_PATH
+            bgp_path.prepend(64512); # First prepend
+            bgp_path.prepend(64512); # Second prepend
+            # Now the path is: 64512, 64512, 64512 -> 65530
+            accept;
+        }
+        reject;
+    };    
+    source address 192.168.1.11;
+}

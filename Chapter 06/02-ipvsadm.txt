@@ -1,0 +1,24 @@
+# Install ipvsadm
+
+sudo dnf install ipvsadm   # For newer CentOS, Fedora, Rocky
+sudo apt install ipvsadm   # For Ubuntu
+
+# Verify the ip_vs module is loaded
+sudo lsmod | grep ip_vs
+
+# Generic format of ipvsadm command
+ipvsadm -A -t|u|f <vip:port> -s <scheduler>
+
+
+# Create a virtual service for TCP port 80 on VIP 192.168.1.100 
+# using Weighted Least-Connections
+ipvsadm -A -t 192.168.1.100:80 -s wlc
+ 
+# Add real server 10.0.1.10:80 using Direct Routing (-g) with a weight of 3
+ipvsadm -a -t 192.168.1.100:80 -r 10.0.1.10:80 -g -w 3
+ 
+# Add real server 10.0.1.11:80 using Direct Routing (-g) with a weight of 1
+ipvsadm -a -t 192.168.1.100:80 -r 10.0.1.11:80 -g -w 1
+
+# View the ipvsadm services
+ipvsadm -Ln

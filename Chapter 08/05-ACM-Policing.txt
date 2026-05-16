@@ -1,0 +1,14 @@
+# Apply Active Queue management with Fair Queue Controlled Delay
+tc qdisc add dev eth0 root fq_codel
+tc qdisc add dev eth0 root fq_codel limit 1000 target 5ms interval 100ms
+
+# Use policing to enforce strict rate limits
+tc filter add dev eth0 parent 1: protocol ip u32 match ip src 192.168.1.100 police rate 1mbit burst 64k drop
+
+# Employ a two-rate, three-color marker system for handling of traffic violations
+# Each colour can trigger different action
+tc filter add dev eth0 parent 1: protocol ip u32 match ip dport 80 0xffff police rate 5mbit burst 100k peakrate 10mbit mtu 1514 conform-exceed drop/violate drop
+
+# Use policing for ingress traffic control
+tc qdisc add dev eth0 handle ffff: ingress
+tc filter add dev eth0 parent ffff: protocol ip u32 match u32 0 0 police rate 5mbit burst 64k drop

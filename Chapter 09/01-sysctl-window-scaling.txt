@@ -1,0 +1,19 @@
+# Check and enable window scaling
+cat /proc/sys/net/ipv4/tcp_window_scaling
+sysctl net.ipv4.tcp_window_scaling 
+
+echo 1 > /proc/sys/net/ipv4/tcp_window_scaling
+sysctl -w net.ipv4.tcp_window_scaling=1
+
+
+# View sysctl settings for netwok
+sysctl -a | grep '^net\.'
+
+# Load all sysctl config file
+sysctl --system
+
+# Load a specific sysctl config file
+sysctl -p /etc/sysctl.d/99-my-tuning.conf
+
+# Use ss command to view the scaling factor
+ss -it
